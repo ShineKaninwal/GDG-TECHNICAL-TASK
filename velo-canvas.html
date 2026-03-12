@@ -1,0 +1,1501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Velo — Design Canvas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=JetBrains+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+  /* ── RESET & BASE ── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; overflow: hidden; }
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: #07070f;
+    color: #eeeeff;
+    user-select: none;
+  }
+
+  /* ── CSS VARIABLES ── */
+  :root {
+    --bg:     #07070f;
+    --s0:     #0b0b17;
+    --s1:     #0f0f1e;
+    --s2:     #141428;
+    --s3:     #1a1a32;
+    --border: rgba(255,255,255,0.07);
+    --borderH:rgba(255,255,255,0.14);
+    --accent: #5eead4;
+    --accentB:#818cf8;
+    --accentC:#f472b6;
+    --accentD:#4ade80;
+    --text:   #eeeeff;
+    --sub:    #7c7a9a;
+    --dim:    #32304e;
+    --red:    #f87171;
+    --amber:  #fbbf24;
+  }
+
+  /* ── SCROLLBARS ── */
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--s3); border-radius: 3px; }
+
+  /* ── LAYOUT ── */
+  #app { display: flex; flex-direction: column; height: 100vh; }
+
+  /* ── TOOLBAR ── */
+  #toolbar {
+    height: 50px;
+    background: var(--s1);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 0 14px;
+    flex-shrink: 0;
+    z-index: 200;
+    position: relative;
+  }
+
+  .logo {
+    display: flex; align-items: center; gap: 8px;
+    margin-right: 8px; cursor: default;
+  }
+  .logo-icon {
+    width: 28px; height: 28px;
+    background: linear-gradient(135deg, var(--accent), var(--accentB));
+    border-radius: 7px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 800; color: var(--bg);
+    font-family: 'Syne', sans-serif;
+    box-shadow: 0 0 16px rgba(94,234,212,0.3);
+  }
+  .logo-text {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800; font-size: 16px;
+    background: linear-gradient(90deg, var(--accent), var(--accentB));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    letter-spacing: -0.04em;
+  }
+
+  .divider {
+    width: 1px; height: 22px;
+    background: var(--border);
+    flex-shrink: 0;
+    margin: 0 3px;
+  }
+
+  .tb-btn {
+    display: flex; align-items: center; gap: 5px;
+    padding: 5px 10px;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--sub);
+    cursor: pointer;
+    font-size: 11px;
+    font-family: 'JetBrains Mono', monospace;
+    transition: all 0.13s;
+    white-space: nowrap;
+    outline: none;
+  }
+  .tb-btn:hover { background: rgba(255,255,255,0.05); border-color: var(--borderH); color: var(--text); }
+  .tb-btn.active { background: rgba(94,234,212,0.1); border-color: var(--accent); color: var(--accent); }
+  .tb-btn:disabled { opacity: 0.35; cursor: default; }
+  .tb-btn:disabled:hover { background: transparent; border-color: var(--border); color: var(--sub); }
+
+  .tb-icon-btn {
+    width: 32px; height: 32px;
+    display: flex; align-items: center; justify-content: center;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--sub);
+    cursor: pointer;
+    font-size: 15px;
+    transition: all 0.13s;
+    outline: none;
+    flex-shrink: 0;
+  }
+  .tb-icon-btn:hover { background: rgba(255,255,255,0.05); border-color: var(--borderH); color: var(--text); }
+
+  .tb-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+  .live-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accentD); box-shadow: 0 0 6px var(--accentD); }
+  .live-label { color: var(--accentD); font-size: 9px; font-family: 'JetBrains Mono', monospace; }
+  .obj-count { color: var(--dim); font-size: 9px; font-family: 'JetBrains Mono', monospace; }
+
+  .zoom-wrap { display: flex; align-items: center; gap: 3px; }
+  #zoom-display {
+    color: var(--sub); font-size: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    width: 38px; text-align: center;
+    cursor: pointer; padding: 2px 0;
+    border-radius: 4px;
+    transition: color .12s;
+  }
+  #zoom-display:hover { color: var(--text); }
+
+  /* ── SHAPE PICKER DROPDOWN ── */
+  #shape-picker-wrap { position: relative; }
+  #shape-picker-btn {
+    display: flex; align-items: center; gap: 6px;
+    padding: 5px 12px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--sub);
+    cursor: pointer;
+    font-size: 11px;
+    font-family: 'JetBrains Mono', monospace;
+    transition: all 0.15s;
+    white-space: nowrap;
+    outline: none;
+  }
+  #shape-picker-btn:hover,
+  #shape-picker-btn.open {
+    background: rgba(94,234,212,0.1);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  #shape-dropdown {
+    display: none;
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    background: var(--s1);
+    border: 1px solid var(--borderH);
+    border-radius: 10px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.85), 0 0 30px rgba(94,234,212,0.05);
+    z-index: 5000;
+    width: 330px;
+    overflow: hidden;
+    animation: picker-in 0.15s ease-out;
+  }
+  #shape-dropdown.open { display: block; }
+
+  .shape-cats {
+    display: flex; gap: 4px;
+    padding: 7px 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  .cat-btn {
+    padding: 4px 10px;
+    border-radius: 5px;
+    border: none;
+    cursor: pointer;
+    font-size: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    transition: all 0.12s;
+    background: transparent;
+    color: var(--sub);
+    outline: none;
+  }
+  .cat-btn:hover { background: rgba(255,255,255,0.04); color: var(--text); }
+  .cat-btn.active { background: rgba(94,234,212,0.15); color: var(--accent); }
+
+  .shape-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 4px;
+    padding: 10px;
+  }
+  .shape-item {
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    padding: 8px 4px;
+    border-radius: 7px;
+    border: 1px solid var(--border);
+    background: transparent;
+    cursor: pointer;
+    transition: all 0.13s;
+    font-family: 'JetBrains Mono', monospace;
+    outline: none;
+  }
+  .shape-item:hover { border-color: rgba(94,234,212,0.4); background: rgba(94,234,212,0.06); }
+  .shape-item span { font-size: 9px; color: var(--sub); text-align: center; line-height: 1.2; }
+  .shape-preview { width: 40px; height: 28px; display: flex; align-items: center; justify-content: center; }
+  .shape-preview svg { overflow: visible; }
+
+  /* ── MAIN AREA ── */
+  #main { display: flex; flex: 1; overflow: hidden; }
+
+  /* ── LAYERS PANEL ── */
+  #layers-panel {
+    width: 188px;
+    background: var(--s1);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+  }
+  .panel-header {
+    padding: 9px 12px 7px;
+    display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+  }
+  .panel-title { color: var(--sub); font-size: 9px; text-transform: uppercase; letter-spacing: .12em; font-family: 'JetBrains Mono', monospace; }
+  .panel-count { color: var(--dim); font-size: 9px; font-family: monospace; }
+  #layers-list { flex: 1; overflow-y: auto; }
+  .layer-row {
+    display: flex; align-items: center; gap: 7px;
+    padding: 5px 10px;
+    cursor: pointer;
+    border-left: 2px solid transparent;
+    transition: all 0.1s;
+  }
+  .layer-row:hover { background: rgba(255,255,255,0.02); }
+  .layer-row.selected { background: rgba(94,234,212,0.06); }
+  .layer-thumb { width: 22px; height: 17px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+  .layer-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 10px; color: var(--sub); font-family: 'JetBrains Mono', monospace; }
+  .layer-row.selected .layer-name { color: var(--text); }
+  .layer-z { font-size: 8px; color: var(--dim); font-family: monospace; flex-shrink: 0; }
+  #layers-empty { padding: 28px 12px; text-align: center; color: var(--dim); font-size: 10px; font-family: monospace; line-height: 1.7; }
+
+  /* ── CANVAS VIEWPORT ── */
+  #viewport {
+    flex: 1;
+    overflow: auto;
+    background: var(--bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 52px;
+    background-image: radial-gradient(rgba(50,48,78,0.18) 1px, transparent 1px);
+    background-size: 24px 24px;
+    position: relative;
+  }
+  #canvas-zoom-wrap {
+    transition: transform 0.12s;
+    flex-shrink: 0;
+  }
+  #canvas {
+    position: relative;
+    width: 920px;
+    height: 620px;
+    flex-shrink: 0;
+    background: linear-gradient(150deg, #11111e 0%, #0d0d1a 100%);
+    border-radius: 10px;
+    box-shadow: 0 0 0 1px var(--border), 0 0 0 1px rgba(94,234,212,0.04), 0 32px 80px rgba(0,0,0,0.85);
+    overflow: hidden;
+    cursor: default;
+  }
+  #canvas.grid-on {
+    background-image:
+      linear-gradient(rgba(94,234,212,.035) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(94,234,212,.035) 1px, transparent 1px),
+      linear-gradient(rgba(94,234,212,.012) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(94,234,212,.012) 1px, transparent 1px);
+    background-size: 32px 32px, 32px 32px, 8px 8px, 8px 8px;
+  }
+  .canvas-label {
+    position: absolute;
+    font-size: 8px;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--dim);
+    opacity: 0.4;
+    pointer-events: none;
+    z-index: 1;
+  }
+  .canvas-glow {
+    position: absolute;
+    border-radius: 50%;
+    pointer-events: none;
+  }
+  #canvas-empty {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    pointer-events: none;
+  }
+  .empty-shapes { display: flex; gap: 8px; opacity: 0.1; }
+  .empty-text { color: var(--dim); font-size: 12px; font-family: 'JetBrains Mono', monospace; }
+  .empty-sub { color: var(--dim); font-size: 9px; opacity: 0.5; font-family: monospace; }
+
+  /* ── CANVAS ELEMENTS ── */
+  .el-wrap {
+    position: absolute;
+    cursor: move;
+  }
+  .el-hover-ring {
+    position: absolute;
+    inset: -2px;
+    border-radius: 4px;
+    border: 1px solid transparent;
+    pointer-events: none;
+    transition: border-color 0.15s, opacity 0.15s;
+    opacity: 0;
+  }
+  .el-wrap:hover .el-hover-ring { opacity: 1; }
+
+  /* ── SELECTION BOX ── */
+  #sel-box {
+    position: absolute;
+    pointer-events: none;
+    border: 1.5px solid #5eead4;
+    border-radius: 4px;
+    box-shadow: 0 0 0 1px var(--bg), 0 0 18px rgba(94,234,212,0.4), 0 0 36px rgba(94,234,212,0.15);
+    z-index: 9998;
+    display: none;
+    animation: sel-pulse 2s ease-in-out infinite;
+  }
+  #sel-box.visible { display: block; }
+  .sel-handle {
+    position: absolute;
+    width: 10px; height: 10px;
+    background: #fff;
+    border: 2px solid #5eead4;
+    border-radius: 2px;
+    pointer-events: all;
+    z-index: 9999;
+    box-shadow: 0 0 6px rgba(94,234,212,0.6), 0 0 0 1px var(--bg);
+  }
+  #sel-dim-badge {
+    position: absolute;
+    bottom: -24px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--s3);
+    border: 1px solid rgba(94,234,212,0.4);
+    border-radius: 4px;
+    padding: 2px 8px;
+    font-size: 9px;
+    font-family: 'JetBrains Mono', monospace;
+    color: #5eead4;
+    white-space: nowrap;
+    pointer-events: none;
+    z-index: 10001;
+  }
+
+  /* ── PROPERTIES PANEL ── */
+  #props-panel {
+    width: 216px;
+    background: var(--s1);
+    border-left: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    overflow-y: auto;
+  }
+  #props-empty {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: var(--dim);
+    gap: 12px;
+    padding: 20px;
+    text-align: center;
+  }
+  .empty-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 6px; opacity: 0.14; margin-bottom: 4px; }
+  .props-header {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .props-type-icon { width: 32px; height: 24px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .props-type-name { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 12px; color: var(--text); }
+  .props-id { font-size: 9px; font-family: monospace; color: var(--dim); }
+  .props-color-dot { width: 8px; height: 8px; border-radius: 50%; margin-left: auto; flex-shrink: 0; }
+
+  .sec-title {
+    padding: 7px 14px 4px;
+    color: var(--dim);
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: .12em;
+    font-family: 'JetBrains Mono', monospace;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 6px;
+  }
+
+  .props-body { padding: 8px 14px; }
+  .prop-label {
+    display: flex; flex-direction: column; gap: 3px;
+    margin-bottom: 8px;
+  }
+  .prop-label-text {
+    color: var(--dim);
+    font-size: 9px;
+    font-family: 'JetBrains Mono', monospace;
+    text-transform: uppercase;
+    letter-spacing: .1em;
+  }
+  .prop-input {
+    padding: 5px 8px;
+    background: var(--s0);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    color: var(--text);
+    font-size: 11px;
+    font-family: 'JetBrains Mono', monospace;
+    outline: none;
+    width: 100%;
+    transition: border-color 0.12s;
+  }
+  .prop-input:focus { border-color: var(--borderH); }
+  .num-input-wrap {
+    display: flex; align-items: center;
+    background: var(--s0);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    overflow: hidden;
+    transition: border-color 0.12s;
+  }
+  .num-input-wrap:focus-within { border-color: var(--borderH); }
+  .num-input {
+    flex: 1; padding: 4px 6px;
+    background: transparent; border: none;
+    color: var(--text); font-size: 11px;
+    font-family: 'JetBrains Mono', monospace;
+    outline: none; width: 0;
+    -moz-appearance: textfield;
+  }
+  .num-input::-webkit-inner-spin-button { -webkit-appearance: none; }
+  .num-unit { padding: 0 5px; color: var(--dim); font-size: 9px; font-family: monospace; }
+
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 10px; }
+  .color-row { display: flex; gap: 6px; align-items: center; }
+  input[type="color"] { width: 32px; height: 28px; border: none; background: none; cursor: pointer; padding: 0; }
+  .color-hex { color: var(--sub); font-size: 10px; font-family: 'JetBrains Mono', monospace; }
+
+  .opacity-row { display: flex; justify-content: space-between; margin-bottom: 4px; }
+  input[type="range"] {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 3px;
+    background: var(--s3);
+    border-radius: 2px;
+    outline: none;
+    margin-bottom: 8px;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 13px; height: 13px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+    border: 2px solid var(--bg);
+  }
+
+  .btn-row { display: flex; gap: 5px; padding: 0 14px 10px; }
+  .action-btn {
+    flex: 1; padding: 5px 0;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    color: var(--sub);
+    cursor: pointer;
+    font-size: 10px;
+    font-family: monospace;
+    transition: all 0.12s;
+    outline: none;
+  }
+  .action-btn:hover { border-color: var(--borderH); color: var(--text); }
+  .action-btn.clone { background: rgba(94,234,212,0.08); border-color: rgba(94,234,212,0.3); color: var(--accent); font-weight: 600; }
+  .action-btn.clone:hover { background: rgba(94,234,212,0.15); border-color: var(--accent); }
+  .action-btn.del { background: rgba(248,113,113,.07); border-color: rgba(248,113,113,.3); color: var(--red); font-weight: 600; }
+  .action-btn.del:hover { background: rgba(248,113,113,.14); border-color: var(--red); }
+
+  /* Shape swap grid */
+  .swap-grid { display: grid; grid-template-columns: repeat(5,1fr); gap: 4px; padding: 0 14px 10px; }
+  .swap-btn {
+    aspect-ratio: 1;
+    display: flex; align-items: center; justify-content: center;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    cursor: pointer;
+    padding: 4px;
+    transition: all 0.12s;
+    outline: none;
+  }
+  .swap-btn:hover { background: rgba(255,255,255,0.04); border-color: var(--borderH); }
+  .swap-btn.active { background: rgba(94,234,212,0.1); border-color: var(--accent); }
+  .swap-btn svg { overflow: visible; }
+
+  /* ── STATUS BAR ── */
+  #statusbar {
+    height: 28px;
+    background: var(--s1);
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    gap: 14px;
+    flex-shrink: 0;
+  }
+  .status-text { color: var(--dim); font-size: 9px; font-family: 'JetBrains Mono', monospace; }
+  .status-sep { color: var(--dim); font-size: 9px; }
+  .status-sel { color: var(--sub); font-size: 9px; font-family: 'JetBrains Mono', monospace; }
+  #status-color { font-size: 9px; font-family: monospace; }
+  #status-shortcuts { margin-left: auto; color: var(--dim); font-size: 9px; font-family: 'JetBrains Mono', monospace; }
+
+  /* ── ANIMATIONS ── */
+  @keyframes sel-pulse { 0%,100%{opacity:1} 50%{opacity:.7} }
+  @keyframes picker-in { from{opacity:0;transform:translateY(-6px)} to{opacity:1;transform:none} }
+  @keyframes fadein { from{opacity:0;transform:translateY(-3px)} to{opacity:1;transform:none} }
+</style>
+</head>
+<body>
+<div id="app">
+  <!-- TOOLBAR -->
+  <div id="toolbar">
+    <div class="logo">
+      <div class="logo-icon">◈</div>
+      <div class="logo-text">Velo</div>
+    </div>
+    <div class="divider"></div>
+
+    <!-- Shape picker -->
+    <div id="shape-picker-wrap">
+      <button id="shape-picker-btn" onclick="togglePicker()">
+        <span style="font-size:14px">⊕</span>
+        <span>Add Shape</span>
+        <span id="picker-arrow" style="font-size:9px;opacity:.6;margin-left:2px">▼</span>
+      </button>
+      <div id="shape-dropdown">
+        <div class="shape-cats" id="cat-tabs"></div>
+        <div class="shape-grid" id="shape-grid"></div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Quick add buttons -->
+    <button class="tb-icon-btn" onclick="addElement('rect')" title="Rectangle">▬</button>
+    <button class="tb-icon-btn" onclick="addElement('circle')" title="Circle">●</button>
+    <button class="tb-icon-btn" onclick="addElement('text')" title="Text">T</button>
+    <button class="tb-icon-btn" onclick="addElement('arrow_r')" title="Arrow">→</button>
+    <button class="tb-icon-btn" onclick="addElement('star')" title="Star">★</button>
+
+    <div class="divider"></div>
+
+    <!-- Undo / Redo -->
+    <button class="tb-btn" id="btn-undo" onclick="undo()" title="Undo Ctrl+Z" disabled>↩ Undo</button>
+    <button class="tb-btn" id="btn-redo" onclick="redo()" title="Redo Ctrl+Y" disabled>↪ Redo</button>
+
+    <div class="divider"></div>
+
+    <!-- Grid toggle -->
+    <button class="tb-btn active" id="btn-grid" onclick="toggleGrid()" title="Toggle Grid">⊞ Grid</button>
+
+    <!-- Zoom -->
+    <div class="zoom-wrap">
+      <button class="tb-icon-btn" onclick="changeZoom(-0.1)" title="Zoom out" style="font-size:18px">−</button>
+      <span id="zoom-display" onclick="resetZoom()" title="Reset zoom">100%</span>
+      <button class="tb-icon-btn" onclick="changeZoom(0.1)" title="Zoom in" style="font-size:18px">+</button>
+    </div>
+
+    <!-- Right side -->
+    <div class="tb-right">
+      <span class="obj-count" id="obj-count">0 obj · 21 shapes</span>
+      <div class="live-dot"></div>
+      <span class="live-label">LIVE</span>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div id="main">
+
+    <!-- LAYERS PANEL -->
+    <div id="layers-panel">
+      <div class="panel-header">
+        <span class="panel-title">Layers</span>
+        <span class="panel-count" id="layer-count">0</span>
+      </div>
+      <div id="layers-list">
+        <div id="layers-empty">No layers yet<br><span style="font-size:9px;opacity:.5">Use "Add Shape" above</span></div>
+      </div>
+    </div>
+
+    <!-- CANVAS VIEWPORT -->
+    <div id="viewport" onclick="deselectAll()">
+      <div id="canvas-zoom-wrap">
+        <div id="canvas" class="grid-on" onclick="event.stopPropagation()">
+          <!-- corner labels -->
+          <span class="canvas-label" style="top:7px;left:10px">0, 0</span>
+          <span class="canvas-label" style="top:7px;right:10px">920, 0</span>
+          <span class="canvas-label" style="bottom:7px;left:50%;transform:translateX(-50%)">920 × 620</span>
+          <!-- ambient glow -->
+          <div class="canvas-glow" style="width:380px;height:380px;background:radial-gradient(circle,rgba(94,234,212,.025),transparent 65%);top:-100px;left:-80px;"></div>
+          <div class="canvas-glow" style="width:280px;height:280px;background:radial-gradient(circle,rgba(129,140,248,.03),transparent 65%);bottom:-60px;right:40px;"></div>
+          <!-- selection box -->
+          <div id="sel-box">
+            <div id="sel-dim-badge">0 × 0</div>
+          </div>
+          <!-- empty state -->
+          <div id="canvas-empty">
+            <div class="empty-shapes" id="empty-shapes"></div>
+            <span class="empty-text">Click "Add Shape" to get started</span>
+            <span class="empty-sub">21 shapes across 5 categories</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PROPERTIES PANEL -->
+    <div id="props-panel">
+      <div id="props-empty">
+        <div class="empty-grid" id="props-empty-grid"></div>
+        <span style="font-size:11px;font-family:'JetBrains Mono',monospace">Select an element</span>
+        <span style="font-size:9px;opacity:.45;line-height:1.6">21 shapes available<br>across 5 categories</span>
+      </div>
+      <div id="props-content" style="display:none;flex-direction:column;flex:1;">
+        <div class="props-header">
+          <div class="props-type-icon" id="props-icon"></div>
+          <div>
+            <div class="props-type-name" id="props-type-name">Shape</div>
+            <div class="props-id" id="props-id">id:0</div>
+          </div>
+          <div class="props-color-dot" id="props-color-dot"></div>
+        </div>
+
+        <div class="props-body">
+          <label class="prop-label">
+            <span class="prop-label-text">Label</span>
+            <input class="prop-input" id="prop-label" type="text" oninput="updateProp('label', this.value)"/>
+          </label>
+        </div>
+
+        <div class="sec-title">Position & Size</div>
+        <div class="grid2" style="padding:0 14px 10px">
+          <label class="prop-label" style="margin:0">
+            <span class="prop-label-text">X</span>
+            <div class="num-input-wrap"><input class="num-input" id="prop-x" type="number" oninput="updateProp('x',+this.value)"/></div>
+          </label>
+          <label class="prop-label" style="margin:0">
+            <span class="prop-label-text">Y</span>
+            <div class="num-input-wrap"><input class="num-input" id="prop-y" type="number" oninput="updateProp('y',+this.value)"/></div>
+          </label>
+          <label class="prop-label" style="margin:0">
+            <span class="prop-label-text">W</span>
+            <div class="num-input-wrap"><input class="num-input" id="prop-w" type="number" min="20" oninput="updateProp('w',Math.max(20,+this.value))"/><span class="num-unit">px</span></div>
+          </label>
+          <label class="prop-label" style="margin:0">
+            <span class="prop-label-text">H</span>
+            <div class="num-input-wrap"><input class="num-input" id="prop-h" type="number" min="20" oninput="updateProp('h',Math.max(20,+this.value))"/><span class="num-unit">px</span></div>
+          </label>
+        </div>
+
+        <div class="sec-title">Appearance</div>
+        <div class="props-body" style="padding-top:0">
+          <label class="prop-label">
+            <span class="prop-label-text">Color</span>
+            <div class="color-row">
+              <input type="color" id="prop-color" oninput="updateProp('color',this.value)"/>
+              <span class="color-hex" id="prop-color-hex">#ffffff</span>
+            </div>
+          </label>
+          <label class="prop-label">
+            <div class="opacity-row">
+              <span class="prop-label-text">Opacity</span>
+              <span class="color-hex" id="prop-opacity-val">100%</span>
+            </div>
+            <input type="range" id="prop-opacity" min="0" max="1" step="0.01" oninput="updateProp('opacity',+this.value); document.getElementById('prop-opacity-val').textContent=Math.round(this.value*100)+'%'"/>
+          </label>
+          <div id="prop-rx-wrap" style="display:none">
+            <label class="prop-label">
+              <span class="prop-label-text">Corner Radius</span>
+              <div class="num-input-wrap"><input class="num-input" id="prop-rx" type="number" min="0" oninput="updateProp('rx',+this.value)"/><span class="num-unit">px</span></div>
+            </label>
+          </div>
+          <div id="prop-fs-wrap" style="display:none">
+            <label class="prop-label">
+              <span class="prop-label-text">Font Size</span>
+              <div class="num-input-wrap"><input class="num-input" id="prop-fs" type="number" min="8" oninput="updateProp('fs',Math.max(8,+this.value))"/><span class="num-unit">px</span></div>
+            </label>
+          </div>
+        </div>
+
+        <div class="sec-title">Change Shape</div>
+        <div class="swap-grid" id="swap-grid"></div>
+
+        <div class="sec-title">Layer</div>
+        <div class="btn-row">
+          <button class="action-btn" onclick="bringForward()">↑ Fwd</button>
+          <button class="action-btn" onclick="sendBackward()">↓ Back</button>
+        </div>
+
+        <div class="sec-title">Actions</div>
+        <div class="btn-row">
+          <button class="action-btn clone" onclick="duplicateSelected()">⧉ Clone</button>
+          <button class="action-btn del" onclick="deleteSelected()">✕ Del</button>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /main -->
+
+  <!-- STATUS BAR -->
+  <div id="statusbar">
+    <span class="status-text" id="status-count">0 elements</span>
+    <span class="status-sep" id="status-sep" style="display:none">│</span>
+    <span class="status-sel" id="status-sel" style="display:none"></span>
+    <span class="status-sep" id="status-sep2" style="display:none">│</span>
+    <span id="status-color" style="display:none"></span>
+    <span id="status-shortcuts">Del · Ctrl+D · Ctrl+Z/Y · Esc</span>
+  </div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════
+   SHAPE CATALOG
+═══════════════════════════════════════════ */
+const SHAPES = [
+  {type:"rect",       label:"Rectangle",      cat:"Basic",    color:"#5eead4", def:{w:200,h:120,rx:6}},
+  {type:"rounded",    label:"Rounded Rect",   cat:"Basic",    color:"#67e8f9", def:{w:200,h:120,rx:32}},
+  {type:"circle",     label:"Circle",         cat:"Basic",    color:"#818cf8", def:{w:100,h:100}},
+  {type:"ellipse",    label:"Ellipse",        cat:"Basic",    color:"#a78bfa", def:{w:180,h:100}},
+  {type:"line",       label:"Line",           cat:"Basic",    color:"#94a3b8", def:{w:160,h:40}},
+  {type:"arrow_r",    label:"Arrow →",        cat:"Arrows",   color:"#fbbf24", def:{w:160,h:40}},
+  {type:"arrow_l",    label:"Arrow ←",        cat:"Arrows",   color:"#fb923c", def:{w:160,h:40}},
+  {type:"arrow_db",   label:"Arrow ↔",        cat:"Arrows",   color:"#f97316", def:{w:160,h:40}},
+  {type:"arrow_up",   label:"Arrow ↑",        cat:"Arrows",   color:"#fdba74", def:{w:40,h:140}},
+  {type:"triangle",   label:"Triangle",       cat:"Polygons", color:"#f472b6", def:{w:120,h:110}},
+  {type:"pentagon",   label:"Pentagon",       cat:"Polygons", color:"#e879f9", def:{w:110,h:110}},
+  {type:"hexagon",    label:"Hexagon",        cat:"Polygons", color:"#c084fc", def:{w:120,h:110}},
+  {type:"diamond",    label:"Diamond",        cat:"Polygons", color:"#a855f7", def:{w:100,h:120}},
+  {type:"parallelogram",label:"Parallelogram",cat:"Polygons", color:"#7c3aed", def:{w:180,h:90}},
+  {type:"star",       label:"Star 5pt",       cat:"Stars",    color:"#f97316", def:{w:100,h:100}},
+  {type:"star6",      label:"Star 6pt",       cat:"Stars",    color:"#fb923c", def:{w:100,h:100}},
+  {type:"star8",      label:"Star 8pt",       cat:"Stars",    color:"#fbbf24", def:{w:100,h:100}},
+  {type:"cross",      label:"Cross",          cat:"Stars",    color:"#4ade80", def:{w:100,h:100}},
+  {type:"text",       label:"Text",           cat:"Media",    color:"#f472b6", def:{w:200,h:56,fs:20}},
+  {type:"image",      label:"Image",          cat:"Media",    color:"#34d399", def:{w:180,h:130}},
+  {type:"callout",    label:"Callout",        cat:"Media",    color:"#38bdf8", def:{w:180,h:100}},
+  {type:"badge",      label:"Badge",          cat:"Media",    color:"#a3e635", def:{w:140,h:50}},
+];
+const SHAPE_MAP = {};
+SHAPES.forEach(s => SHAPE_MAP[s.type] = s);
+const CATS = [...new Set(SHAPES.map(s=>s.cat))];
+
+/* ═══════════════════════════════════════════
+   SVG SHAPE RENDERER
+═══════════════════════════════════════════ */
+function makeSvg(type, w, h, color, strokeW=1.8) {
+  const cx=w/2, cy=h/2;
+  const fc=color+'bb', sc=color, sw=strokeW;
+  const ns='http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(ns,'svg');
+  svg.setAttribute('width', w);
+  svg.setAttribute('height', h);
+  svg.style.cssText='position:absolute;inset:0;overflow:visible;';
+
+  function poly(pts, fill=true) {
+    const el=document.createElementNS(ns,'polygon');
+    el.setAttribute('points', pts);
+    el.setAttribute('fill', fill?fc:'none');
+    el.setAttribute('stroke', sc);
+    el.setAttribute('stroke-width', sw);
+    el.setAttribute('stroke-linejoin','round');
+    return el;
+  }
+  function polyPts(n, offDeg=0, inner=null) {
+    const count = inner ? n*2 : n;
+    const pts = Array.from({length:count},(_,i)=>{
+      const a=(i*(inner?180/n:360/n)+offDeg-90)*Math.PI/180;
+      const r = inner ? (i%2===0 ? Math.min(w,h)/2-2 : inner) : Math.min(w,h)/2-2;
+      return `${cx+r*Math.cos(a)},${cy+r*Math.sin(a)}`;
+    }).join(' ');
+    return pts;
+  }
+  function marker(id, pts) {
+    const defs=document.createElementNS(ns,'defs');
+    const m=document.createElementNS(ns,'marker');
+    m.setAttribute('id',id);
+    m.setAttribute('markerWidth','7');
+    m.setAttribute('markerHeight','7');
+    m.setAttribute('refX','7');
+    m.setAttribute('refY','3.5');
+    m.setAttribute('orient','auto');
+    const p=document.createElementNS(ns,'polygon');
+    p.setAttribute('points',pts);
+    p.setAttribute('fill',sc);
+    m.appendChild(p); defs.appendChild(m);
+    return defs;
+  }
+  function line(x1,y1,x2,y2,me=null,ms=null) {
+    const el=document.createElementNS(ns,'line');
+    el.setAttribute('x1',x1);el.setAttribute('y1',y1);
+    el.setAttribute('x2',x2);el.setAttribute('y2',y2);
+    el.setAttribute('stroke',sc);el.setAttribute('stroke-width',sw+0.7);
+    el.setAttribute('stroke-linecap','round');
+    if(me) el.setAttribute('marker-end',me);
+    if(ms) el.setAttribute('marker-start',ms);
+    return el;
+  }
+  const mid = 'm'+Math.random().toString(36).slice(2,7);
+
+  switch(type) {
+    case 'rect': case 'rounded': {
+      const r=document.createElementNS(ns,'rect');
+      r.setAttribute('x',2);r.setAttribute('y',2);
+      r.setAttribute('width',w-4);r.setAttribute('height',h-4);
+      r.setAttribute('rx',type==='rounded'?Math.min(32,h/2):4);
+      r.setAttribute('fill',fc);r.setAttribute('stroke',sc);r.setAttribute('stroke-width',sw);
+      svg.appendChild(r);break;
+    }
+    case 'circle': case 'ellipse': {
+      const e=document.createElementNS(ns,'ellipse');
+      e.setAttribute('cx',cx);e.setAttribute('cy',cy);
+      e.setAttribute('rx',cx-2);e.setAttribute('ry',cy-2);
+      e.setAttribute('fill',fc);e.setAttribute('stroke',sc);e.setAttribute('stroke-width',sw);
+      svg.appendChild(e);break;
+    }
+    case 'line': {
+      const l=document.createElementNS(ns,'line');
+      l.setAttribute('x1',4);l.setAttribute('y1',cy);l.setAttribute('x2',w-4);l.setAttribute('y2',cy);
+      l.setAttribute('stroke',sc);l.setAttribute('stroke-width',sw+0.7);l.setAttribute('stroke-linecap','round');
+      svg.appendChild(l);break;
+    }
+    case 'arrow_r': {
+      svg.appendChild(marker(mid,'0 0,7 3.5,0 7'));
+      svg.appendChild(line(8,cy,w-14,cy,`url(#${mid})`));break;
+    }
+    case 'arrow_l': {
+      const d2=document.createElementNS(ns,'defs');
+      const m2=document.createElementNS(ns,'marker');
+      m2.setAttribute('id',mid);m2.setAttribute('markerWidth','7');m2.setAttribute('markerHeight','7');
+      m2.setAttribute('refX','0');m2.setAttribute('refY','3.5');m2.setAttribute('orient','auto-start-reverse');
+      const p2=document.createElementNS(ns,'polygon');p2.setAttribute('points','0 3.5,7 0,7 7');p2.setAttribute('fill',sc);
+      m2.appendChild(p2);d2.appendChild(m2);svg.appendChild(d2);
+      svg.appendChild(line(14,cy,w-8,cy,null,`url(#${mid})`));break;
+    }
+    case 'arrow_db': {
+      const d3=document.createElementNS(ns,'defs');
+      const mr=document.createElementNS(ns,'marker');mr.setAttribute('id',mid+'r');
+      mr.setAttribute('markerWidth','7');mr.setAttribute('markerHeight','7');mr.setAttribute('refX','7');mr.setAttribute('refY','3.5');mr.setAttribute('orient','auto');
+      const pr=document.createElementNS(ns,'polygon');pr.setAttribute('points','0 0,7 3.5,0 7');pr.setAttribute('fill',sc);mr.appendChild(pr);d3.appendChild(mr);
+      const ml=document.createElementNS(ns,'marker');ml.setAttribute('id',mid+'l');
+      ml.setAttribute('markerWidth','7');ml.setAttribute('markerHeight','7');ml.setAttribute('refX','0');ml.setAttribute('refY','3.5');ml.setAttribute('orient','auto-start-reverse');
+      const pl=document.createElementNS(ns,'polygon');pl.setAttribute('points','0 3.5,7 0,7 7');pl.setAttribute('fill',sc);ml.appendChild(pl);d3.appendChild(ml);
+      svg.appendChild(d3);
+      svg.appendChild(line(14,cy,w-14,cy,`url(#${mid}r)`,`url(#${mid}l)`));break;
+    }
+    case 'arrow_up': {
+      const d4=document.createElementNS(ns,'defs');
+      const mu=document.createElementNS(ns,'marker');mu.setAttribute('id',mid);
+      mu.setAttribute('markerWidth','7');mu.setAttribute('markerHeight','7');mu.setAttribute('refX','3.5');mu.setAttribute('refY','0');mu.setAttribute('orient','auto');
+      const pu=document.createElementNS(ns,'polygon');pu.setAttribute('points','0 7,3.5 0,7 7');pu.setAttribute('fill',sc);mu.appendChild(pu);d4.appendChild(mu);svg.appendChild(d4);
+      const lu=document.createElementNS(ns,'line');
+      lu.setAttribute('x1',cx);lu.setAttribute('y1',h-8);lu.setAttribute('x2',cx);lu.setAttribute('y2',10);
+      lu.setAttribute('stroke',sc);lu.setAttribute('stroke-width',sw+0.7);lu.setAttribute('stroke-linecap','round');
+      lu.setAttribute('marker-end',`url(#${mid})`);svg.appendChild(lu);break;
+    }
+    case 'triangle':
+      svg.appendChild(poly(`${cx},4 ${w-4},${h-4} 4,${h-4}`));break;
+    case 'pentagon':
+      svg.appendChild(poly(polyPts(5,-18)));break;
+    case 'hexagon':
+      svg.appendChild(poly(polyPts(6,0)));break;
+    case 'diamond':
+      svg.appendChild(poly(`${cx},4 ${w-4},${cy} ${cx},${h-4} 4,${cy}`));break;
+    case 'parallelogram':
+      svg.appendChild(poly(`${w*0.22},4 ${w-4},4 ${w*0.78},${h-4} 4,${h-4}`));break;
+    case 'star':
+      svg.appendChild(poly(polyPts(5,-90,Math.min(w,h)/2*0.4)));break;
+    case 'star6':
+      svg.appendChild(poly(polyPts(6,0,Math.min(w,h)/2*0.45)));break;
+    case 'star8':
+      svg.appendChild(poly(polyPts(8,22.5,Math.min(w,h)/2*0.45)));break;
+    case 'cross': {
+      const a=w*0.35;
+      svg.appendChild(poly(`${a},4 ${w-a},4 ${w-a},${a} ${w-4},${a} ${w-4},${h-a} ${w-a},${h-a} ${w-a},${h-4} ${a},${h-4} ${a},${h-a} 4,${h-a} 4,${a} ${a},${a}`));break;
+    }
+    case 'image': {
+      const r2=document.createElementNS(ns,'rect');
+      r2.setAttribute('x',2);r2.setAttribute('y',2);r2.setAttribute('width',w-4);r2.setAttribute('height',h-4);
+      r2.setAttribute('rx',6);r2.setAttribute('fill',color+'18');r2.setAttribute('stroke',sc);
+      r2.setAttribute('stroke-width',sw);r2.setAttribute('stroke-dasharray','5,3');svg.appendChild(r2);
+      const ci=document.createElementNS(ns,'circle');
+      ci.setAttribute('cx',w*0.3);ci.setAttribute('cy',h*0.38);ci.setAttribute('r',Math.min(w,h)*0.09);
+      ci.setAttribute('fill',sc);ci.setAttribute('opacity','0.5');svg.appendChild(ci);
+      const pl=document.createElementNS(ns,'polyline');
+      pl.setAttribute('points',`4,${h-8} ${w*0.28},${h*0.6} ${w*0.48},${h*0.75} ${w*0.65},${h*0.55} ${w-4},${h-8}`);
+      pl.setAttribute('fill','none');pl.setAttribute('stroke',sc);pl.setAttribute('stroke-width','1.5');
+      pl.setAttribute('stroke-linejoin','round');pl.setAttribute('opacity','0.6');svg.appendChild(pl);break;
+    }
+    case 'callout': {
+      const p3=document.createElementNS(ns,'path');
+      p3.setAttribute('d',`M 12,4 H ${w-12} Q ${w-4},4 ${w-4},14 V ${h*0.65} Q ${w-4},${h*0.65+10} ${w-14},${h*0.65+10} H ${w*0.45} L ${w*0.3},${h-4} L ${w*0.38},${h*0.65+10} H 12 Q 4,${h*0.65+10} 4,${h*0.65} V 14 Q 4,4 12,4 Z`);
+      p3.setAttribute('fill',fc);p3.setAttribute('stroke',sc);p3.setAttribute('stroke-width',sw);p3.setAttribute('stroke-linejoin','round');
+      svg.appendChild(p3);break;
+    }
+    case 'badge': {
+      const rb=document.createElementNS(ns,'rect');
+      rb.setAttribute('x',2);rb.setAttribute('y',2);rb.setAttribute('width',w-4);rb.setAttribute('height',h-4);
+      rb.setAttribute('rx',Math.min(w,h)/2-2);rb.setAttribute('fill',fc);rb.setAttribute('stroke',sc);rb.setAttribute('stroke-width',sw);
+      svg.appendChild(rb);break;
+    }
+    default: {
+      const rd=document.createElementNS(ns,'rect');
+      rd.setAttribute('x',2);rd.setAttribute('y',2);rd.setAttribute('width',w-4);rd.setAttribute('height',h-4);
+      rd.setAttribute('rx',4);rd.setAttribute('fill',fc);rd.setAttribute('stroke',sc);rd.setAttribute('stroke-width',sw);
+      svg.appendChild(rd);
+    }
+  }
+  return svg;
+}
+
+/* ═══════════════════════════════════════════
+   STATE
+═══════════════════════════════════════════ */
+let elements = [];
+let selectedId = null;
+let zoom = 1;
+let gridOn = true;
+let history = [[]];
+let histIdx = 0;
+let idCounter = 1;
+let activeCat = 'Basic';
+
+/* drag/resize state */
+let dragState = null;  // {id, sx, sy, ox, oy}
+let resizeState = null; // {id, handle, sx, sy, ox, oy, ow, oh}
+
+/* ═══════════════════════════════════════════
+   HISTORY
+═══════════════════════════════════════════ */
+function commit(newEls) {
+  elements = newEls.map(e=>({...e}));
+  history = [...history.slice(0, histIdx+1), elements.map(e=>({...e}))];
+  histIdx = history.length - 1;
+  updateUndoRedo();
+  renderAll();
+}
+
+function undo() {
+  if (histIdx <= 0) return;
+  histIdx--;
+  elements = history[histIdx].map(e=>({...e}));
+  if (selectedId && !elements.find(e=>e.id===selectedId)) selectedId=null;
+  updateUndoRedo();
+  renderAll();
+}
+
+function redo() {
+  if (histIdx >= history.length-1) return;
+  histIdx++;
+  elements = history[histIdx].map(e=>({...e}));
+  updateUndoRedo();
+  renderAll();
+}
+
+function updateUndoRedo() {
+  document.getElementById('btn-undo').disabled = histIdx <= 0;
+  document.getElementById('btn-redo').disabled = histIdx >= history.length-1;
+}
+
+/* ═══════════════════════════════════════════
+   ADD ELEMENT
+═══════════════════════════════════════════ */
+function addElement(type) {
+  const meta = SHAPE_MAP[type]; if(!meta) return;
+  const {w, h, ...extra} = meta.def;
+  const maxZ = elements.reduce((m,e)=>Math.max(m,e.z),0);
+  const canvas = document.getElementById('canvas');
+  const cx = snapVal(canvas.offsetWidth/2 - w/2 + (Math.random()*60-30));
+  const cy = snapVal(canvas.offsetHeight/2 - h/2 + (Math.random()*60-30));
+  const el = {
+    id: idCounter++, type, x:cx, y:cy, w, h,
+    color: meta.color, label: meta.label, z: maxZ+1, opacity: 1,
+    ...extra
+  };
+  commit([...elements, el]);
+  selectElement(el.id);
+  closePicker();
+}
+
+/* ═══════════════════════════════════════════
+   DELETE / DUPLICATE
+═══════════════════════════════════════════ */
+function deleteSelected() {
+  if (!selectedId) return;
+  commit(elements.filter(e=>e.id!==selectedId));
+  selectedId = null;
+  renderAll();
+}
+
+function duplicateSelected() {
+  if (!selectedId) return;
+  const el = elements.find(e=>e.id===selectedId); if(!el) return;
+  const maxZ = elements.reduce((m,e)=>Math.max(m,e.z),0);
+  const ne = {...el, id:idCounter++, x:el.x+24, y:el.y+24, z:maxZ+1};
+  commit([...elements, ne]);
+  selectElement(ne.id);
+}
+
+function bringForward() {
+  if (!selectedId) return;
+  commit(elements.map(e=>e.id===selectedId?{...e,z:e.z+1}:e));
+}
+function sendBackward() {
+  if (!selectedId) return;
+  commit(elements.map(e=>e.id===selectedId?{...e,z:Math.max(0,e.z-1)}:e));
+}
+
+/* ═══════════════════════════════════════════
+   SELECTION
+═══════════════════════════════════════════ */
+function selectElement(id) {
+  selectedId = id;
+  renderAll();
+}
+
+function deselectAll() {
+  selectedId = null;
+  renderAll();
+}
+
+/* ═══════════════════════════════════════════
+   UPDATE PROP (live, no history push)
+═══════════════════════════════════════════ */
+function updateProp(key, val) {
+  const el = elements.find(e=>e.id===selectedId); if(!el) return;
+  el[key] = val;
+  renderElementDOM(el);
+  updateSelBox();
+  updatePropsPanel();
+  updateLayerRow(el);
+  updateStatusBar();
+}
+
+function commitProp() {
+  commit(elements);
+}
+
+/* ═══════════════════════════════════════════
+   GRID / ZOOM
+═══════════════════════════════════════════ */
+function toggleGrid() {
+  gridOn = !gridOn;
+  const canvas = document.getElementById('canvas');
+  canvas.classList.toggle('grid-on', gridOn);
+  document.getElementById('btn-grid').classList.toggle('active', gridOn);
+}
+
+function changeZoom(delta) {
+  zoom = Math.min(3, Math.max(0.25, parseFloat((zoom + delta).toFixed(2))));
+  applyZoom();
+}
+function resetZoom() { zoom = 1; applyZoom(); }
+function applyZoom() {
+  document.getElementById('canvas-zoom-wrap').style.transform = `scale(${zoom})`;
+  document.getElementById('zoom-display').textContent = Math.round(zoom*100)+'%';
+}
+
+function snapVal(v) { return Math.round(v / 8) * 8; }
+
+/* ═══════════════════════════════════════════
+   SHAPE PICKER UI
+═══════════════════════════════════════════ */
+function buildPicker() {
+  // Category tabs
+  const tabs = document.getElementById('cat-tabs');
+  tabs.innerHTML = '';
+  CATS.forEach(cat => {
+    const btn = document.createElement('button');
+    btn.className = 'cat-btn' + (cat===activeCat?' active':'');
+    btn.textContent = cat;
+    btn.onclick = () => { activeCat = cat; buildPicker(); };
+    tabs.appendChild(btn);
+  });
+  // Shape grid
+  const grid = document.getElementById('shape-grid');
+  grid.innerHTML = '';
+  SHAPES.filter(s=>s.cat===activeCat).forEach(s=>{
+    const btn = document.createElement('button');
+    btn.className = 'shape-item';
+    const prev = document.createElement('div');
+    prev.className = 'shape-preview';
+    prev.appendChild(makeSvg(s.type, 36, 26, s.color, 1.5));
+    const lbl = document.createElement('span');
+    lbl.textContent = s.label;
+    btn.appendChild(prev); btn.appendChild(lbl);
+    btn.title = s.label;
+    btn.onclick = () => addElement(s.type);
+    btn.onmouseenter = () => { btn.style.borderColor=s.color+'66'; btn.style.background=s.color+'10'; };
+    btn.onmouseleave = () => { btn.style.borderColor=''; btn.style.background=''; };
+    grid.appendChild(btn);
+  });
+}
+
+function togglePicker() {
+  const drop = document.getElementById('shape-dropdown');
+  const btn = document.getElementById('shape-picker-btn');
+  const arrow = document.getElementById('picker-arrow');
+  const isOpen = drop.classList.toggle('open');
+  btn.classList.toggle('open', isOpen);
+  arrow.textContent = isOpen ? '▲' : '▼';
+  if (isOpen) buildPicker();
+}
+
+function closePicker() {
+  document.getElementById('shape-dropdown').classList.remove('open');
+  document.getElementById('shape-picker-btn').classList.remove('open');
+  document.getElementById('picker-arrow').textContent = '▼';
+}
+
+/* ═══════════════════════════════════════════
+   RENDER CANVAS ELEMENTS
+═══════════════════════════════════════════ */
+function renderAll() {
+  renderElements();
+  updateSelBox();
+  updatePropsPanel();
+  updateLayersPanel();
+  updateStatusBar();
+  updateObjCount();
+}
+
+function renderElements() {
+  const canvas = document.getElementById('canvas');
+  // remove old elements (keep non-element children)
+  canvas.querySelectorAll('.el-wrap').forEach(e=>e.remove());
+  // render sorted by z
+  const sorted = [...elements].sort((a,b)=>a.z-b.z);
+  sorted.forEach(el => {
+    canvas.appendChild(createElementDOM(el));
+  });
+  // empty state
+  document.getElementById('canvas-empty').style.display = elements.length ? 'none' : 'flex';
+}
+
+function createElementDOM(el) {
+  const wrap = document.createElement('div');
+  wrap.className = 'el-wrap';
+  wrap.id = 'el-'+el.id;
+  wrap.style.cssText = `left:${el.x}px;top:${el.y}px;width:${el.w}px;height:${el.h}px;z-index:${el.z};opacity:${el.opacity??1};`;
+
+  const ring = document.createElement('div');
+  ring.className = 'el-hover-ring';
+  ring.style.borderColor = el.color+'44';
+  if (el.type==='circle'||el.type==='ellipse') ring.style.borderRadius='50%';
+  wrap.appendChild(ring);
+
+  if (el.type === 'text') {
+    const txt = document.createElement('div');
+    txt.style.cssText = `position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+      font-family:'Syne',sans-serif;font-weight:700;font-size:${el.fs??18}px;color:${el.color};
+      letter-spacing:-0.03em;text-shadow:0 0 20px ${el.color}88;
+      overflow:hidden;white-space:nowrap;text-overflow:ellipsis;
+      border:1px dashed ${el.color}44;border-radius:4px;`;
+    txt.textContent = el.label;
+    wrap.appendChild(txt);
+  } else {
+    const svgWrap = document.createElement('div');
+    svgWrap.style.cssText = `position:absolute;inset:0;filter:drop-shadow(0 0 8px ${el.color}44);`;
+    svgWrap.appendChild(makeSvg(el.type, el.w, el.h, el.color));
+    wrap.appendChild(svgWrap);
+  }
+
+  wrap.addEventListener('mousedown', e => {
+    if (e.button!==0) return;
+    e.stopPropagation();
+    selectElement(el.id);
+    const found = elements.find(x=>x.id===el.id);
+    dragState = {id:el.id, sx:e.clientX, sy:e.clientY, ox:found.x, oy:found.y};
+    e.preventDefault();
+  });
+
+  return wrap;
+}
+
+function renderElementDOM(el) {
+  const wrap = document.getElementById('el-'+el.id);
+  if (!wrap) return;
+  wrap.style.left = el.x+'px'; wrap.style.top = el.y+'px';
+  wrap.style.width = el.w+'px'; wrap.style.height = el.h+'px';
+  wrap.style.zIndex = el.z;
+  wrap.style.opacity = el.opacity??1;
+  // rebuild inner
+  wrap.innerHTML = '';
+  const ring = document.createElement('div');
+  ring.className = 'el-hover-ring';
+  ring.style.borderColor = el.color+'44';
+  if (el.type==='circle'||el.type==='ellipse') ring.style.borderRadius='50%';
+  wrap.appendChild(ring);
+  if (el.type === 'text') {
+    const txt = document.createElement('div');
+    txt.style.cssText = `position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+      font-family:'Syne',sans-serif;font-weight:700;font-size:${el.fs??18}px;color:${el.color};
+      letter-spacing:-0.03em;text-shadow:0 0 20px ${el.color}88;
+      overflow:hidden;white-space:nowrap;text-overflow:ellipsis;
+      border:1px dashed ${el.color}44;border-radius:4px;`;
+    txt.textContent = el.label;
+    wrap.appendChild(txt);
+  } else {
+    const svgWrap = document.createElement('div');
+    svgWrap.style.cssText = `position:absolute;inset:0;filter:drop-shadow(0 0 8px ${el.color}44);`;
+    svgWrap.appendChild(makeSvg(el.type, el.w, el.h, el.color));
+    wrap.appendChild(svgWrap);
+  }
+}
+
+/* ═══════════════════════════════════════════
+   SELECTION BOX
+═══════════════════════════════════════════ */
+function updateSelBox() {
+  const box = document.getElementById('sel-box');
+  const el = elements.find(e=>e.id===selectedId);
+  if (!el) { box.classList.remove('visible'); return; }
+
+  box.classList.add('visible');
+  box.style.left = (el.x-2)+'px';
+  box.style.top = (el.y-2)+'px';
+  box.style.width = (el.w+4)+'px';
+  box.style.height = (el.h+4)+'px';
+  box.style.borderColor = el.color;
+  box.style.boxShadow = `0 0 0 1px var(--bg), 0 0 18px ${el.color}55, 0 0 36px ${el.color}22`;
+  box.style.borderRadius = (el.type==='circle'||el.type==='ellipse') ? '50%' : el.type==='badge'?'999px':'4px';
+  document.getElementById('sel-dim-badge').textContent = Math.round(el.w)+' × '+Math.round(el.h);
+  document.getElementById('sel-dim-badge').style.color = el.color;
+  document.getElementById('sel-dim-badge').style.borderColor = el.color+'55';
+
+  // Rebuild handles
+  box.querySelectorAll('.sel-handle').forEach(h=>h.remove());
+  const handles=[
+    {id:'nw',fx:0,fy:0,cur:'nw-resize'},{id:'n',fx:.5,fy:0,cur:'n-resize'},{id:'ne',fx:1,fy:0,cur:'ne-resize'},
+    {id:'e',fx:1,fy:.5,cur:'e-resize'},{id:'se',fx:1,fy:1,cur:'se-resize'},{id:'s',fx:.5,fy:1,cur:'s-resize'},
+    {id:'sw',fx:0,fy:1,cur:'sw-resize'},{id:'w',fx:0,fy:.5,cur:'w-resize'},
+  ];
+  handles.forEach(h=>{
+    const div = document.createElement('div');
+    div.className = 'sel-handle';
+    div.style.left = (h.fx*(el.w+4)-5)+'px';
+    div.style.top  = (h.fy*(el.h+4)-5)+'px';
+    div.style.cursor = h.cur;
+    div.style.borderColor = el.color;
+    div.style.boxShadow = `0 0 6px ${el.color}88, 0 0 0 1px var(--bg)`;
+    div.addEventListener('mousedown', e=>{
+      e.stopPropagation();
+      const found = elements.find(x=>x.id===selectedId);
+      resizeState = {id:selectedId, handle:h.id, sx:e.clientX, sy:e.clientY, ox:found.x, oy:found.y, ow:found.w, oh:found.h};
+      e.preventDefault();
+    });
+    box.appendChild(div);
+  });
+}
+
+/* ═══════════════════════════════════════════
+   LAYERS PANEL
+═══════════════════════════════════════════ */
+function updateLayersPanel() {
+  const list = document.getElementById('layers-list');
+  const empty = document.getElementById('layers-empty');
+  if (!elements.length) { empty.style.display='block'; list.querySelectorAll('.layer-row').forEach(r=>r.remove()); document.getElementById('layer-count').textContent='0'; return; }
+  empty.style.display='none';
+  list.querySelectorAll('.layer-row').forEach(r=>r.remove());
+  document.getElementById('layer-count').textContent=elements.length;
+  const sorted = [...elements].sort((a,b)=>b.z-a.z);
+  sorted.forEach(el=>{
+    const row=document.createElement('div');
+    row.className='layer-row'+(el.id===selectedId?' selected':'');
+    row.id='layer-row-'+el.id;
+    row.style.borderLeftColor = el.id===selectedId?el.color:'transparent';
+    const thumb=document.createElement('div');
+    thumb.className='layer-thumb';
+    thumb.style.filter=`drop-shadow(0 0 3px ${el.color}55)`;
+    thumb.appendChild(makeSvg(el.type,20,15,el.color,1.2));
+    const name=document.createElement('span');
+    name.className='layer-name';
+    name.textContent=el.label;
+    const z=document.createElement('span');
+    z.className='layer-z';
+    z.textContent='z'+el.z;
+    row.appendChild(thumb);row.appendChild(name);row.appendChild(z);
+    row.addEventListener('click',()=>{ selectElement(el.id); });
+    list.appendChild(row);
+  });
+}
+
+function updateLayerRow(el) {
+  const row=document.getElementById('layer-row-'+el.id); if(!row) return;
+  row.querySelector('.layer-name').textContent=el.label;
+  const thumb=row.querySelector('.layer-thumb');
+  thumb.innerHTML='';
+  thumb.style.filter=`drop-shadow(0 0 3px ${el.color}55)`;
+  thumb.appendChild(makeSvg(el.type,20,15,el.color,1.2));
+}
+
+/* ═══════════════════════════════════════════
+   PROPERTIES PANEL
+═══════════════════════════════════════════ */
+function updatePropsPanel() {
+  const el = elements.find(e=>e.id===selectedId);
+  const empty = document.getElementById('props-empty');
+  const content = document.getElementById('props-content');
+  if (!el) {
+    empty.style.display='flex'; content.style.display='none'; return;
+  }
+  empty.style.display='none'; content.style.display='flex';
+
+  // header
+  const icon=document.getElementById('props-icon');
+  icon.innerHTML='';
+  icon.style.filter=`drop-shadow(0 0 4px ${el.color}66)`;
+  icon.appendChild(makeSvg(el.type,28,20,el.color,1.5));
+  document.getElementById('props-type-name').textContent = SHAPE_MAP[el.type]?.label||el.type;
+  document.getElementById('props-id').textContent = 'id:'+el.id;
+  const dot=document.getElementById('props-color-dot');
+  dot.style.background=el.color;dot.style.boxShadow=`0 0 8px ${el.color}88`;
+
+  // fields
+  document.getElementById('prop-label').value=el.label;
+  document.getElementById('prop-x').value=Math.round(el.x);
+  document.getElementById('prop-y').value=Math.round(el.y);
+  document.getElementById('prop-w').value=Math.round(el.w);
+  document.getElementById('prop-h').value=Math.round(el.h);
+  document.getElementById('prop-color').value=el.color;
+  document.getElementById('prop-color-hex').textContent=el.color;
+  document.getElementById('prop-opacity').value=el.opacity??1;
+  document.getElementById('prop-opacity-val').textContent=Math.round((el.opacity??1)*100)+'%';
+  document.getElementById('prop-opacity').style.accentColor=el.color;
+
+  // conditional
+  document.getElementById('prop-rx-wrap').style.display=(el.type==='rect'||el.type==='rounded')?'block':'none';
+  if (el.type==='rect'||el.type==='rounded') document.getElementById('prop-rx').value=el.rx??6;
+  document.getElementById('prop-fs-wrap').style.display=el.type==='text'?'block':'none';
+  if (el.type==='text') document.getElementById('prop-fs').value=el.fs??18;
+
+  // swap grid - show shapes from same category + basics
+  const swapGrid=document.getElementById('swap-grid');
+  swapGrid.innerHTML='';
+  const cat=SHAPE_MAP[el.type]?.cat||'Basic';
+  const swapShapes=[...new Map(SHAPES.filter(s=>s.cat===cat||s.cat==='Basic').map(s=>[s.type,s])).values()].slice(0,10);
+  swapShapes.forEach(s=>{
+    const btn=document.createElement('button');
+    btn.className='swap-btn'+(el.type===s.type?' active':'');
+    btn.title=s.label;
+    const svgW=document.createElement('div');
+    svgW.style.cssText='width:22px;height:16px;';
+    svgW.appendChild(makeSvg(s.type,22,16,el.type===s.type?'#5eead4':el.color,1.3));
+    btn.appendChild(svgW);
+    btn.onclick=()=>{
+      const def=SHAPE_MAP[s.type]?.def||{};
+      el.type=s.type; el.label=s.label;
+      if(def.rx!==undefined)el.rx=def.rx;
+      if(def.fs!==undefined)el.fs=def.fs;
+      renderElementDOM(el); updateSelBox(); updatePropsPanel(); updateLayerRow(el);
+    };
+    btn.onmouseenter=()=>{ if(el.type!==s.type){btn.style.background='rgba(255,255,255,0.04)';btn.style.borderColor='var(--borderH)';} };
+    btn.onmouseleave=()=>{ if(el.type!==s.type){btn.style.background='';btn.style.borderColor='';} };
+    swapGrid.appendChild(btn);
+  });
+}
+
+/* ═══════════════════════════════════════════
+   STATUS BAR
+═══════════════════════════════════════════ */
+function updateStatusBar() {
+  document.getElementById('status-count').textContent = elements.length+' elements';
+  const el = elements.find(e=>e.id===selectedId);
+  const hasSel = !!el;
+  document.getElementById('status-sep').style.display=hasSel?'inline':'none';
+  document.getElementById('status-sel').style.display=hasSel?'inline':'none';
+  document.getElementById('status-sep2').style.display=hasSel?'inline':'none';
+  document.getElementById('status-color').style.display=hasSel?'inline':'none';
+  if (el) {
+    document.getElementById('status-sel').textContent=`${SHAPE_MAP[el.type]?.label||el.type} · (${Math.round(el.x)}, ${Math.round(el.y)}) · ${Math.round(el.w)}×${Math.round(el.h)}`;
+    document.getElementById('status-color').textContent=el.color;
+    document.getElementById('status-color').style.color=el.color;
+    document.getElementById('status-color').style.fontFamily='monospace';
+  }
+}
+
+function updateObjCount() {
+  document.getElementById('obj-count').textContent=elements.length+' obj · 21 shapes';
+}
+
+/* ═══════════════════════════════════════════
+   EMPTY STATE DECORATIONS
+═══════════════════════════════════════════ */
+function buildEmptyDecorations() {
+  const ns='http://www.w3.org/2000/svg';
+  const emptyShapes=document.getElementById('empty-shapes');
+  ['rect','circle','triangle','star','hexagon'].forEach(t=>{
+    const d=document.createElement('div');
+    d.style.cssText='width:36px;height:28px;display:flex;align-items:center;justify-content:center;';
+    d.appendChild(makeSvg(t,32,24,'#5eead4',1.2));
+    emptyShapes.appendChild(d);
+  });
+  const propGrid=document.getElementById('props-empty-grid');
+  ['rect','circle','triangle','diamond','star','hexagon'].forEach(t=>{
+    const d=document.createElement('div');
+    d.style.cssText='width:28px;height:22px;display:flex;align-items:center;justify-content:center;';
+    d.appendChild(makeSvg(t,26,20,'#5eead4',1.2));
+    propGrid.appendChild(d);
+  });
+}
+
+/* ═══════════════════════════════════════════
+   DRAG & RESIZE (global mouse events)
+═══════════════════════════════════════════ */
+document.addEventListener('mousemove', e=>{
+  if (resizeState) {
+    const {id, handle, sx, sy, ox, oy, ow, oh} = resizeState;
+    const dx=(e.clientX-sx)/zoom, dy=(e.clientY-sy)/zoom;
+    const el=elements.find(x=>x.id===id); if(!el) return;
+    let {x,y,w,h}={x:ox,y:oy,w:ow,h:oh};
+    if(handle.includes('e')) w=Math.max(20,snapVal(ow+dx));
+    if(handle.includes('s')) h=Math.max(20,snapVal(oh+dy));
+    if(handle.includes('w')){ const nw=Math.max(20,snapVal(ow-dx)); x=ox+(ow-nw); w=nw; }
+    if(handle.includes('n')){ const nh=Math.max(20,snapVal(oh-dy)); y=oy+(oh-nh); h=nh; }
+    el.x=x; el.y=y; el.w=w; el.h=h;
+    renderElementDOM(el); updateSelBox(); updatePropsPanel(); updateStatusBar();
+    return;
+  }
+  if (dragState) {
+    const {id, sx, sy, ox, oy} = dragState;
+    const el=elements.find(x=>x.id===id); if(!el) return;
+    el.x=snapVal(ox+(e.clientX-sx)/zoom);
+    el.y=snapVal(oy+(e.clientY-sy)/zoom);
+    renderElementDOM(el); updateSelBox(); updatePropsPanel(); updateStatusBar();
+  }
+});
+
+document.addEventListener('mouseup', ()=>{
+  if (resizeState||dragState) { commit(elements); }
+  resizeState=null; dragState=null;
+});
+
+/* ═══════════════════════════════════════════
+   KEYBOARD SHORTCUTS
+═══════════════════════════════════════════ */
+document.addEventListener('keydown', e=>{
+  const tag=document.activeElement.tagName;
+  if(tag==='INPUT'||tag==='TEXTAREA') return;
+  if(e.key==='Delete'||e.key==='Backspace') deleteSelected();
+  if(e.key==='Escape'){ deselectAll(); closePicker(); }
+  if((e.ctrlKey||e.metaKey)&&e.key==='z'){e.preventDefault();undo();}
+  if((e.ctrlKey||e.metaKey)&&(e.key==='y'||(e.shiftKey&&e.key==='z'))){e.preventDefault();redo();}
+  if((e.ctrlKey||e.metaKey)&&e.key==='d'){e.preventDefault();duplicateSelected();}
+});
+
+/* close picker on outside click */
+document.addEventListener('mousedown', e=>{
+  const wrap=document.getElementById('shape-picker-wrap');
+  if(!wrap.contains(e.target)) closePicker();
+});
+
+/* commit prop on blur */
+document.querySelectorAll('.prop-input,.num-input').forEach(inp=>{
+  inp.addEventListener('blur',()=>commit(elements));
+});
+
+/* ═══════════════════════════════════════════
+   INIT
+═══════════════════════════════════════════ */
+buildEmptyDecorations();
+buildPicker();
+renderAll();
+</script>
+</body>
+</html>
